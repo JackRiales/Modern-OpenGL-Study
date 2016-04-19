@@ -1,0 +1,8 @@
+# depslib dependency file v1.0
+1461042399 source:c:\users\jack\documents\development\projects\rendering practice\src\main.cpp
+	<stdio.h>
+	<stdlib.h>
+	<GL/glew.h>
+	<GL/glfw3.h>
+	<glm/glm.hpp>
+
