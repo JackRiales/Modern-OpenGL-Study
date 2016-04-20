@@ -10,10 +10,22 @@
 #include <glm/glm.hpp>
 using namespace glm;
 
+// Resolution configs
+int WIDTH = 800;
+int HEIGHT= 600;
+
 void key_callback (GLFWwindow *window, int key, int scancode, int action, int mode) {
     // When the user preses escale, the window should then close
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
         glfwSetWindowShouldClose(window, GL_TRUE);
+    if (key == GLFW_KEY_TAB && action == GLFW_PRESS) {
+        GLint polyMode;
+        glGetIntegerv(GL_POLYGON_MODE, &polyMode);
+        if (polyMode == GL_LINE)
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        else if (polyMode == GL_FILL)
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    }
 }
 
 int main (int argc, char **argv) {
@@ -30,7 +42,7 @@ int main (int argc, char **argv) {
     glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 
     // Create a GLFW window and make it the current context
-    GLFWwindow *window = glfwCreateWindow(800, 600, "My Render Window", NULL, NULL);
+    GLFWwindow *window = glfwCreateWindow(WIDTH, HEIGHT, "My Render Window", NULL, NULL);
     if (window == NULL) {
         fprintf (stderr, "Failed to create a GLFW window!\n");
         glfwTerminate();
@@ -49,7 +61,7 @@ int main (int argc, char **argv) {
     }
 
     // State the viewport
-    glViewport(0,0,800,600);
+    glViewport(0, 0, WIDTH, HEIGHT);
 
     // Now we're going to write a shader. Typically this would be put in its own file but, uh, fuck it. C string.
     char *vertShaderString = "#version 330 core\n\nlayout(location = 0) in vec3 position;\n\nvoid main() { gl_Position = vec4(position.x, position.y, position.z, 1.0); }";
@@ -113,14 +125,22 @@ int main (int argc, char **argv) {
     glDeleteShader(vertShader);
     glDeleteShader(fragShader);
 
-    // Make some vertex data for GL to use
+    // Make some vertex data for GL to use. Let's make a quad!
     GLfloat verts[] = {
-        -0.5f, -0.5f, 0.0f, // Left
-         0.5f, -0.5f, 0.0f, // Right
-        -0.0f,  0.5f, 0.0f  // Top
+         0.5f,  0.5f, 0.0f, // Top right
+         0.5f, -0.5f, 0.0f, // Bottom right
+        -0.5f, -0.5f, 0.0f, // Bottom left
+        -0.5f,  0.5f, 0.0f  // Top left
     };
-    GLuint VBO, VAO;
+
+    // Indices tell GL which verts connect to what
+    GLuint indices[] = {
+        0, 1, 3,    // Tri 1
+        1, 2, 3     // Tri 2
+    };
+    GLuint VBO, VAO, EBO;
     glGenBuffers(1, &VBO);
+    glGenBuffers(1, &EBO);
     glGenVertexArrays(1, &VAO);
 
     // Bind the vertex array
@@ -129,6 +149,10 @@ int main (int argc, char **argv) {
         // Copy our ver array in a buffer for gl to use
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
         glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
+
+        // Copy our index array in an element buffer
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
         // Then set our vertex attribute pointers
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*) 0);
@@ -149,7 +173,7 @@ int main (int argc, char **argv) {
         // DRAW our damn triangle
         glUseProgram(shaderProgram);            // Use the shader program...
         glBindVertexArray(VAO);                 // Bind our VAO...
-        glDrawArrays(GL_TRIANGLES, 0, 3);       // Draw arrays...
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);       // Draw arrays...
         glBindVertexArray(0);                   // Unbind that shit so it doesn't get misconfigured you dont want that
 
         // Swap the buffers
