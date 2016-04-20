@@ -17,7 +17,6 @@ void key_callback (GLFWwindow *window, int key, int scancode, int action, int mo
 }
 
 int main (int argc, char **argv) {
-
     // Initialize GLFW
     if ( !glfwInit() ) {
         fprintf (stderr, "Failed to initialize GLFW!\n");
@@ -39,6 +38,9 @@ int main (int argc, char **argv) {
     }
     glfwMakeContextCurrent(window);
 
+    // Set our key callback
+    glfwSetKeyCallback(window, key_callback);
+
     // Initialize GLEW
     glewExperimental = GL_TRUE;
     if ( glewInit() != GLEW_OK ) {
@@ -48,29 +50,6 @@ int main (int argc, char **argv) {
 
     // State the viewport
     glViewport(0,0,800,600);
-
-    // Set our key callback
-    glfwSetKeyCallback(window, key_callback);
-
-    // Make some vertex data for GL to use
-    GLfloat verts[] = {
-        -0.5f, -0.5f, 0.0f,
-         0.5f, -0.5f, 0.0f,
-        -0.0f,  0.5f, 0.0f
-    };
-
-    // We want to send these vertices to the graphics card, in a big bulk instead of individually.
-    // To accomplish this, we use a vertex buffer object
-    GLuint VBO;
-    glGenBuffers(1, &VBO);
-
-    // Here we're binding the object to the GL_ARRAY_BUFFER target
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-
-    // Now we can copy the vertex data to the bound buffer's memory
-    // Note we're passing GL_STATIC_DRAW. That's telling OpenGL yeah, uh, this data's probably not going to change a lot.
-    // So this way it's not placed into the GPU's super-fast-memory-fuck area. Think "static" in Unity.
-    glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
 
     // Now we're going to write a shader. Typically this would be put in its own file but, uh, fuck it. C string.
     char *vertShaderString = "#version 330 core\n\nlayout(location = 0) in vec3 position;\n\nvoid main() { gl_Position = vec4(position.x, position.y, position.z, 1.0); }";
@@ -134,13 +113,19 @@ int main (int argc, char **argv) {
     glDeleteShader(vertShader);
     glDeleteShader(fragShader);
 
-    // But OpenGL's a big dummy, it has vertex data and shader data, but can't interpret the the two together!
-    // We need a vertex array object to sort of tell gl how to deal with this
-    GLuint VAO;
+    // Make some vertex data for GL to use
+    GLfloat verts[] = {
+        -0.5f, -0.5f, 0.0f, // Left
+         0.5f, -0.5f, 0.0f, // Right
+        -0.0f,  0.5f, 0.0f  // Top
+    };
+    GLuint VBO, VAO;
+    glGenBuffers(1, &VBO);
     glGenVertexArrays(1, &VAO);
 
     // Bind the vertex array
     glBindVertexArray(VAO);
+
         // Copy our ver array in a buffer for gl to use
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
         glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
@@ -148,12 +133,12 @@ int main (int argc, char **argv) {
         // Then set our vertex attribute pointers
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*) 0);
         glEnableVertexAttribArray(0);
+
     // Finally, unbind
     glBindVertexArray(0);
 
     // Run the primary loop
     while (!glfwWindowShouldClose(window)) {
-
         // Check and call our events stack
         glfwPollEvents();
 
@@ -171,6 +156,8 @@ int main (int argc, char **argv) {
         glfwSwapBuffers(window);
     }
 
+    glDeleteVertexArrays(1, &VAO);
+    glDeleteBuffers(1, &VBO);
     glfwTerminate();
     return EXIT_SUCCESS;
 }
